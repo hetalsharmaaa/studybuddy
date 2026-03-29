@@ -1,10 +1,12 @@
+# backend/app/main.py
+
 from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import upload, chat, quiz
+from app.api import upload, chat, quiz, summarize, questions
 
 app = FastAPI()
 
@@ -22,6 +24,8 @@ app.add_middleware(
 app.include_router(upload.router)
 app.include_router(chat.router)
 app.include_router(quiz.router)
+app.include_router(summarize.router)
+app.include_router(questions.router)
 
 
 @app.get("/")

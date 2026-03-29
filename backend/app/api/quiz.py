@@ -1,8 +1,10 @@
+# backend/app/api/quiz.py
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 import json
 
-from app.services.vector_service import stored_chunks
+from app.services import vector_service
 from app.services.ai_service import get_client
 
 router = APIRouter()
@@ -14,16 +16,16 @@ class QuizRequest(BaseModel):
 
 @router.post("/quiz")
 def generate_quiz(request: QuizRequest):
-    if not stored_chunks:
+    chunks = vector_service.stored_chunks
+
+    if not chunks:
         return {"error": "No document uploaded"}
 
     client = get_client()
 
-    # 🔥 Better context (more coverage)
-    context = "\n\n".join(stored_chunks[:10])
+    context = "\n\n".join(chunks[:10])
 
-    prompt = f"""
-You are a strict exam generator.
+    prompt = f"""You are a strict exam generator.
 
 Generate {request.num_questions} HIGH QUALITY MCQs from the text.
 
@@ -55,17 +57,17 @@ TEXT:
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3  # 🔥 less randomness
+            temperature=0.3
         )
 
         output = response.choices[0].message.content.strip()
 
-        # clean markdown if present
         if "```" in output:
             output = output.split("```")[1]
+            if output.startswith("json"):
+                output = output[4:]
 
         quiz = json.loads(output)
-
         return {"quiz": quiz}
 
     except Exception as e:
